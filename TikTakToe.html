@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Gato (Tic-Tac-Toe)</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+        td {
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            border: 1px solid #000;
+            cursor: pointer;
+        }
+        .info {
+            text-align: center;
+            margin: 20px;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>Juego de Gato (Tic-Tac-Toe)</h1>
+        <p id="status">Turno del jugador: X</p>
+    </div>
+    <table id="gameBoard">
+        <tr>
+            <td data-row="0" data-col="0"></td>
+            <td data-row="0" data-col="1"></td>
+            <td data-row="0" data-col="2"></td>
+        </tr>
+        <tr>
+            <td data-row="1" data-col="0"></td>
+            <td data-row="1" data-col="1"></td>
+            <td data-row="1" data-col="2"></td>
+        </tr>
+        <tr>
+            <td data-row="2" data-col="0"></td>
+            <td data-row="2" data-col="1"></td>
+            <td data-row="2" data-col="2"></td>
+        </tr>
+    </table>
+    <button id="resetButton">Reiniciar Juego</button>
+
+    <script>
+        const baseUrl = "https://localhost:7135/api/game"; // Asegúrate de que la URL coincida con la de tu API
+
+        async function fetchGameState() {
+            try {
+                const response = await fetch(baseUrl);
+                const game = await response.json();
+                console.log('Estado del juego:', game); // Verifica los datos recibidos
+                return game;
+            } catch (error) {
+                console.error('Error al obtener el estado del juego:', error);
+            }
+        }
+
+        async function makeMove(row, col) {
+            const response = await fetch(`${baseUrl}/move?row=${row}&col=${col}`, {
+            method: 'POST'
+            });
+            if (!response.ok) {
+                console.error('Error en la solicitud:', response.statusText);
+                return null;
+            }
+            return response.json();
+        }
+
+        async function resetGame() {
+            try {
+                const response = await fetch(`${baseUrl}/reset`, {
+                    method: 'POST'
+                });
+                const game = await response.json();
+                console.log('Resultado del reinicio:', game); // Verifica los datos recibidos
+                return game;
+            } catch (error) {
+                console.error('Error al reiniciar el juego:', error);
+            }
+        }
+
+        function updateBoard(board) {
+            if (!board || !Array.isArray(board) || !Array.isArray(board[0])) {
+                console.error('El estado del tablero es inválido:', board);
+                return;
+            }
+            const cells = document.querySelectorAll('td');
+            cells.forEach(cell => {
+                const row = cell.getAttribute('data-row');
+                const col = cell.getAttribute('data-col');
+                cell.textContent = board[row][col] === '-' ? '' : board[row][col];
+            });
+            }
+
+        function updateStatus(game) {
+            const status = document.getElementById('status');
+            if (game.Winner) {
+                status.textContent = `Ganador: ${game.Winner}`;
+            } else if (game.IsDraw) {
+                status.textContent = "Empate";
+            } else {
+                status.textContent = `Turno del jugador: ${game.CurrentPlayer}`;
+            }
+        }
+
+        document.getElementById('gameBoard').addEventListener('click', async (event) => {
+            if (event.target.tagName === 'TD') {
+                const row = event.target.getAttribute('data-row');
+                const col = event.target.getAttribute('data-col');
+                const game = await makeMove(row, col);
+                updateBoard(game.board);
+                updateStatus(game);
+            }
+        });
+
+        document.getElementById('resetButton').addEventListener('click', async () => {
+            const game = await resetGame();
+            updateBoard(game.board);
+            updateStatus(game);
+        });
+
+        // Inicializar el estado del juego
+        fetchGameState().then(game => {
+            updateBoard(game.board);
+            updateStatus(game);
+        });
+    </script>
+</body>
+</html>
